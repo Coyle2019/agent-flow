@@ -1,0 +1,45 @@
+{
+  "repo_type": "frontend",
+  "default_branch": "main",
+  "allowed_change_actions": [
+    "replace_block",
+    "create_file",
+    "update_file"
+  ],
+  "allowed_write_paths": [
+    "index.html",
+    "styles.css",
+    "README.md",
+    "src/**",
+    "public/**"
+  ],
+  "available_checks": [
+    {
+      "check_id": "html_output",
+      "command": "python3 -c \"from pathlib import Path; text = Path('index.html').read_text(encoding='utf-8') if Path('index.html').exists() else ''; ok = '<!DOCTYPE html>' in text and '<body' in text and '</html>' in text; raise SystemExit(0 if ok else 1)\""
+    },
+    {
+      "check_id": "content_structure",
+      "command": "python3 -c \"from pathlib import Path; text = Path('index.html').read_text(encoding='utf-8') if Path('index.html').exists() else ''; lower = text.lower(); has_title = 'Agent Flow' in text; has_form = '<form' in lower; has_action = any(item in text for item in ['Get Started', 'Try Now', 'Start', 'Login', 'Sign In', '登录', '提交']); has_button = '<button' in lower or 'type=\\\"submit\\\"' in lower; raise SystemExit(0 if has_title and ((has_form and has_button) or has_action) else 1)\""
+    }
+  ],
+  "template_repo": "/Users/cenwj/development/agent/examples/demo_repo",
+  "entrypoints": [
+    "index.html",
+    "styles.css",
+    "README.md"
+  ],
+  "owners": [
+    "Coyle2019"
+  ],
+  "required_reviewers": [
+    "Coyle2019"
+  ],
+  "depends_on_repos": [
+    "Coyle2019/agent-flow-sandbox"
+  ],
+  "build_commands": [],
+  "smoke_commands": [
+    "python3 -c \"from pathlib import Path; raise SystemExit(0 if Path('README.md').exists() else 1)\""
+  ]
+}
