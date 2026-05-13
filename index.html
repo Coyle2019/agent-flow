@@ -19,6 +19,13 @@
                 
                 <form id="registerForm" class="register-form">
                     <div class="form-group">
+                        <label for="invitationCode">邀请码 <span class="optional">(可选)</span></label>
+                        <input type="text" id="invitationCode" name="invitationCode" placeholder="有邀请码？输入享受专属福利">
+                        <div class="validation-status" id="invitationStatus"></div>
+                        <span class="error-message" id="invitationError"></span>
+                    </div>
+                    
+                    <div class="form-group">
                         <label for="username">用户名</label>
                         <input type="text" id="username" name="username" placeholder="请输入用户名" required>
                         <span class="error-message" id="usernameError"></span>
@@ -49,6 +56,9 @@
     
     <script>
         const form = document.getElementById('registerForm');
+        const invitationCodeInput = document.getElementById('invitationCode');
+        const invitationStatus = document.getElementById('invitationStatus');
+        const invitationError = document.getElementById('invitationError');
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
         const submitBtn = document.getElementById('submitBtn');
@@ -57,6 +67,8 @@
         
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         let isSubmitting = false;
+        let isInvitationValid = false;
+        let validateTimeout = null;
         
         function validateEmail(email) {
             return emailRegex.test(email);
@@ -71,11 +83,83 @@
             alertBox.className = 'alert hidden';
         }
         
+        function showInvitationStatus(message, type, showSpinner = false) {
+            invitationStatus.innerHTML = showSpinner ? '<div class="spinner-small"></div>' : '';
+            invitationStatus.innerHTML += message;
+            invitationStatus.className = 'validation-status ' + type;
+        }
+        
+        function clearInvitationStatus() {
+            invitationStatus.className = 'validation-status';
+            invitationStatus.innerHTML = '';
+            invitationError.textContent = '';
+            invitationCodeInput.classList.remove('invalid', 'valid');
+            isInvitationValid = false;
+        }
+        
+        async function validateInvitationCode(code) {
+            if (!code || !code.trim()) {
+                clearInvitationStatus();
+                updateSubmitState();
+                return;
+            }
+            
+            showInvitationStatus('验证中...', 'loading', true);
+            
+            try {
+                const response = await fetch('/api/invitation/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code: code.trim().toUpperCase() })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.valid) {
+                    showInvitationStatus('✓ 邀请码有效', 'success');
+                    invitationError.textContent = '';
+                    invitationCodeInput.classList.remove('invalid');
+                    invitationCodeInput.classList.add('valid');
+                    isInvitationValid = true;
+                } else {
+                    const errorMsg = data.message || '此邀请码无效或已过期';
+                    showInvitationStatus('', 'error');
+                    invitationError.textContent = errorMsg;
+                    invitationCodeInput.classList.add('invalid');
+                    invitationCodeInput.classList.remove('valid');
+                    isInvitationValid = false;
+                }
+            } catch (error) {
+                showInvitationStatus('', 'error');
+                invitationError.textContent = '无法验证邀请码，请重试';
+                invitationCodeInput.classList.add('invalid');
+                invitationCodeInput.classList.remove('valid');
+                isInvitationValid = false;
+            }
+            
+            updateSubmitState();
+        }
+        
         function updateSubmitState() {
             const isValid = emailInput.value && validateEmail(emailInput.value) && 
                            passwordInput.value.length >= 8;
             submitBtn.disabled = !isValid || isSubmitting;
         }
+        
+        invitationCodeInput.addEventListener('input', () => {
+            clearInvitationStatus();
+            clearTimeout(validateTimeout);
+            validateTimeout = setTimeout(() => {
+                validateInvitationCode(invitationCodeInput.value);
+            }, 500);
+        });
+        
+        invitationCodeInput.addEventListener('blur', () => {
+            clearTimeout(validateTimeout);
+            validateInvitationCode(invitationCodeInput.value);
+        });
         
         emailInput.addEventListener('input', () => {
             const emailError = document.getElementById('emailError');
@@ -112,6 +196,11 @@
             
             if (isSubmitting) return;
             
+            if (invitationCodeInput.value && !isInvitationValid) {
+                await validateInvitationCode(invitationCodeInput.value);
+                if (!isInvitationValid) return;
+            }
+            
             isSubmitting = true;
             submitBtn.disabled = true;
             submitBtn.textContent = '注册中...';
@@ -126,7 +215,8 @@
                     body: JSON.stringify({
                         username: document.getElementById('username').value,
                         email: emailInput.value,
-                        password: passwordInput.value
+                        password: passwordInput.value,
+                        invitationCode: invitationCodeInput.value || null
                     })
                 });
                 
@@ -135,6 +225,7 @@
                 if (response.ok) {
                     showAlert('注册成功，欢迎' + data.username + '！', 'success');
                     form.reset();
+                    clearInvitationStatus();
                 } else {
                     if (data.message && data.message.includes('邮箱')) {
                         document.getElementById('emailError').textContent = '该邮箱已被注册';

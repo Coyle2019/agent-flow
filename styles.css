@@ -63,6 +63,12 @@ header .subtitle {
     font-weight: 500;
 }
 
+.form-group label .optional {
+    font-weight: 400;
+    color: #999;
+    font-size: 0.85rem;
+}
+
 .form-group input {
     width: 100%;
     padding: 12px 16px;
@@ -86,12 +92,63 @@ header .subtitle {
     box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
 }
 
+.form-group input.valid {
+    border-color: #27ae60;
+}
+
+.form-group input.valid:focus {
+    box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+}
+
 .error-message {
     display: block;
     font-size: 0.8rem;
     color: #e74c3c;
     margin-top: 4px;
     min-height: 1.2em;
+}
+
+.validation-status {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    margin-top: 6px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    min-height: 32px;
+}
+
+.validation-status.loading {
+    display: flex;
+    background: #f0f4ff;
+    color: #667eea;
+}
+
+.validation-status.success {
+    display: flex;
+    background: #d4edda;
+    color: #155724;
+}
+
+.validation-status.error {
+    display: flex;
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.spinner-small {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #e0e0e0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 .toggle-password {
@@ -238,10 +295,6 @@ header .subtitle {
     border-top-color: #667eea;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
 }
 
 .response-section {

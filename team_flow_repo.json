@@ -1,4 +1,5 @@
 {
+  "repo_full_name": "Coyle2019/agent-flow",
   "repo_type": "frontend",
   "default_branch": "main",
   "allowed_change_actions": [
@@ -29,7 +30,10 @@
   "preview_files": [
     "index.html",
     "styles.css",
-    "README.md"
+    "README.md",
+    "package.json",
+    "src/**",
+    "public/**"
   ],
   "search_patterns": [
     "TEAM_FLOW",
