@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Health Check - Agent Flow</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Agent Flow</h1>
+            <p class="subtitle">智能代理工作流平台</p>
+        </header>
+        
+        <main>
+            <div class="health-card">
+                <h2>Service Health Check</h2>
+                <p class="subtitle-text">Monitoring Coyle2019/agent-test /healthz endpoint</p>
+                
+                <div id="statusContainer" class="status-container">
+                    <div id="loadingState" class="status-badge loading">
+                        <span class="spinner"></span>
+                        <span>Checking service status...</span>
+                    </div>
+                    
+                    <div id="successState" class="status-badge success hidden">
+                        <span class="icon">✓</span>
+                        <span>Service is healthy</span>
+                    </div>
+                    
+                    <div id="errorState" class="status-badge error hidden">
+                        <span class="icon">✗</span>
+                        <span id="errorMessage">Unable to connect to service</span>
+                    </div>
+                </div>
+                
+                <div id="responseSection" class="response-section hidden">
+                    <h3>API Response</h3>
+                    <pre id="responseData" class="response-data"></pre>
+                </div>
+                
+                <button id="refreshBtn" class="btn-refresh">Check Again</button>
+                
+                <p id="timestamp" class="timestamp"></p>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        const API_ENDPOINT = 'https://api.coyle2019.com/healthz';
+        const TIMEOUT_MS = 10000;
+        
+        const loadingState = document.getElementById('loadingState');
+        const successState = document.getElementById('successState');
+        const errorState = document.getElementById('errorState');
+        const errorMessage = document.getElementById('errorMessage');
+        const responseSection = document.getElementById('responseSection');
+        const responseData = document.getElementById('responseData');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const timestamp = document.getElementById('timestamp');
+        
+        function showState(state) {
+            loadingState.classList.add('hidden');
+            successState.classList.add('hidden');
+            errorState.classList.add('hidden');
+            responseSection.classList.add('hidden');
+            
+            if (state === 'loading') {
+                loadingState.classList.remove('hidden');
+            } else if (state === 'success') {
+                successState.classList.remove('hidden');
+                responseSection.classList.remove('hidden');
+            } else if (state === 'error') {
+                errorState.classList.remove('hidden');
+            }
+        }
+        
+        function formatTime(date) {
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+        
+        async function checkHealth() {
+            showState('loading');
+            responseData.textContent = '';
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+            
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                const data = await response.text().catch(() => '');
+                
+                if (response.ok) {
+                    showState('success');
+                    responseData.textContent = data || '{ "status": "ok" }';
+                } else {
+                    showState('error');
+                    errorMessage.textContent = `Service returned status ${response.status}`;
+                    responseData.textContent = data;
+                    responseSection.classList.remove('hidden');
+                }
+            } catch (error) {
+                clearTimeout(timeoutId);
+                showState('error');
+                
+                if (error.name === 'AbortError') {
+                    errorMessage.textContent = 'Request timeout after 10 seconds';
+                } else if (!navigator.onLine) {
+                    errorMessage.textContent = 'No internet connection';
+                } else {
+                    errorMessage.textContent = 'Unable to connect to service (CORS blocked)';
+                }
+            }
+            
+            timestamp.textContent = 'Last checked: ' + formatTime(new Date());
+        }
+        
+        refreshBtn.addEventListener('click', checkHealth);
+        
+        checkHealth();
+    </script>
+</body>
+</html>

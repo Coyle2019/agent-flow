@@ -7,9 +7,11 @@
     "update_file"
   ],
   "allowed_write_paths": [
+    "*.html",
     "index.html",
     "styles.css",
     "README.md",
+    "assets/**",
     "src/**",
     "public/**"
   ],
@@ -24,6 +26,16 @@
     }
   ],
   "template_repo": "/Users/cenwj/development/agent/examples/demo_repo",
+  "preview_files": [
+    "index.html",
+    "styles.css",
+    "README.md"
+  ],
+  "search_patterns": [
+    "TEAM_FLOW",
+    "Agent Flow",
+    "frontend"
+  ],
   "entrypoints": [
     "index.html",
     "styles.css",
@@ -36,7 +48,7 @@
     "Coyle2019"
   ],
   "depends_on_repos": [
-    "Coyle2019/agent-flow-sandbox"
+    "Coyle2019/agent-test"
   ],
   "build_commands": [],
   "smoke_commands": [
