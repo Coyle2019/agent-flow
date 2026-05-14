@@ -4,6 +4,13 @@
 
 ## 功能特性
 
+### 系统状态
+- 页面加载时自动调用 GET /api/status 获取服务状态
+- 显示后端服务名称 (service) 和状态 (status)
+- 10秒超时控制
+- 调用失败时显示错误提示横幅，支持手动关闭
+- 错误处理：网络超时、HTTP错误、响应格式错误
+
 ### 注册接口
 - 用户名、邮箱、密码注册
 - 实时邮箱格式校验
@@ -20,6 +27,7 @@
 - 显示最后检查时间
 
 ### API端点
+- `GET /api/status` - 系统状态接口 (Coyle2019/agent-test)
 - `POST /api/v1/register` - 用户注册接口
 - `GET /healthz` (Coyle2019/agent-test) - 服务健康检查接口
 
@@ -29,10 +37,14 @@
 
 ## 页面导航
 
-- `index.html` - 用户注册页面
+- `index.html` - 用户注册页面（含系统状态展示）
 - `health.html` - 服务健康检查页面
 
 ## 开始使用
+
+### 查看系统状态
+1. 打开 `index.html`
+2. 页面自动获取系统状态并显示
 
 ### 注册账号
 1. 打开 `index.html`
@@ -49,4 +61,5 @@
 - 前端页面：`index.html`、`health.html`
 - 样式文件：`styles.css`
 - 注册页面需后端 `/api/v1/register` 接口支持
+- 注册页面调用 Coyle2019/agent-test 的 `/api/status` 接口获取系统状态
 - 健康检查页面调用 Coyle2019/agent-test 的 `/healthz` 接口
