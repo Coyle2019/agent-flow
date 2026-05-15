@@ -13,6 +13,32 @@
             <p class="subtitle">智能代理工作流平台</p>
         </header>
         
+        <!-- System Status Panel -->
+        <div id="statusPanel" class="status-panel">
+            <h3>系统状态</h3>
+            <div class="status-content">
+                <div class="status-item">
+                    <span class="status-label">Service:</span>
+                    <span id="statusService" class="status-value">-</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Status:</span>
+                    <span id="statusValue" class="status-value">-</span>
+                </div>
+            </div>
+            <div id="statusLoading" class="status-loading">
+                <div class="spinner-small"></div>
+                <span>加载中...</span>
+            </div>
+        </div>
+        
+        <!-- Error Banner -->
+        <div id="errorBanner" class="error-banner hidden">
+            <span class="error-icon">⚠️</span>
+            <span id="errorMessage">Unable to load system status. Please try again later.</span>
+            <button id="dismissError" class="dismiss-btn">×</button>
+        </div>
+        
         <main>
             <div class="register-card">
                 <h2>注册账号</h2>
@@ -64,11 +90,70 @@
         const submitBtn = document.getElementById('submitBtn');
         const alertBox = document.getElementById('alertBox');
         const togglePassword = document.getElementById('togglePassword');
+        const statusPanel = document.getElementById('statusPanel');
+        const statusService = document.getElementById('statusService');
+        const statusValue = document.getElementById('statusValue');
+        const statusLoading = document.getElementById('statusLoading');
+        const errorBanner = document.getElementById('errorBanner');
+        const errorMessage = document.getElementById('errorMessage');
+        const dismissError = document.getElementById('dismissError');
         
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         let isSubmitting = false;
         let isInvitationValid = false;
         let validateTimeout = null;
+        
+        // System Status Functions
+        async function fetchSystemStatus() {
+            statusLoading.style.display = 'flex';
+            statusService.textContent = '-';
+            statusValue.textContent = '-';
+            errorBanner.classList.add('hidden');
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            
+            try {
+                const response = await fetch('/api/status', {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data || typeof data.service === 'undefined' || typeof data.status === 'undefined') {
+                    throw new Error('Invalid response format');
+                }
+                
+                statusService.textContent = data.service || 'N/A';
+                statusValue.textContent = data.status || 'N/A';
+                statusLoading.style.display = 'none';
+            } catch (error) {
+                clearTimeout(timeoutId);
+                statusLoading.style.display = 'none';
+                showError('Unable to load system status. Please try again later.');
+            }
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorBanner.classList.remove('hidden');
+        }
+        
+        function hideError() {
+            errorBanner.classList.add('hidden');
+        }
+        
+        dismissError.addEventListener('click', hideError);
+        
+        // Fetch status on page load
+        fetchSystemStatus();
         
         function validateEmail(email) {
             return emailRegex.test(email);
