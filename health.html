@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Health Check - Agent Flow</title>
+    <title>Health Status - Agent Flow</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -15,32 +15,32 @@
         
         <main>
             <div class="health-card">
-                <h2>Service Health Check</h2>
-                <p class="subtitle-text">Monitoring Coyle2019/agent-test /healthz endpoint</p>
+                <h2>Health Status</h2>
+                <p class="subtitle-text">Service Health Check</p>
                 
-                <div id="statusContainer" class="status-container">
-                    <div id="loadingState" class="status-badge loading">
-                        <span class="spinner"></span>
-                        <span>Checking service status...</span>
+                <div class="status-container">
+                    <div id="statusLoading" class="status-badge loading">
+                        <div class="spinner"></div>
+                        <span>Checking health...</span>
                     </div>
                     
-                    <div id="successState" class="status-badge success hidden">
+                    <div id="statusSuccess" class="status-badge success hidden">
                         <span class="icon">✓</span>
-                        <span>Service is healthy</span>
+                        <span id="statusText">Service Healthy</span>
                     </div>
                     
-                    <div id="errorState" class="status-badge error hidden">
+                    <div id="statusError" class="status-badge error hidden">
                         <span class="icon">✗</span>
-                        <span id="errorMessage">Unable to connect to service</span>
+                        <span id="errorText">Health Check Failed</span>
                     </div>
                 </div>
                 
                 <div id="responseSection" class="response-section hidden">
-                    <h3>API Response</h3>
+                    <h3>Response Details</h3>
                     <pre id="responseData" class="response-data"></pre>
                 </div>
                 
-                <button id="refreshBtn" class="btn-refresh">Check Again</button>
+                <button id="retryBtn" class="btn-refresh">Retry</button>
                 
                 <p id="timestamp" class="timestamp"></p>
             </div>
@@ -48,36 +48,46 @@
     </div>
     
     <script>
-        const API_ENDPOINT = 'https://api.coyle2019.com/healthz';
-        const TIMEOUT_MS = 10000;
-        
-        const loadingState = document.getElementById('loadingState');
-        const successState = document.getElementById('successState');
-        const errorState = document.getElementById('errorState');
-        const errorMessage = document.getElementById('errorMessage');
+        const statusLoading = document.getElementById('statusLoading');
+        const statusSuccess = document.getElementById('statusSuccess');
+        const statusError = document.getElementById('statusError');
+        const statusText = document.getElementById('statusText');
+        const errorText = document.getElementById('errorText');
         const responseSection = document.getElementById('responseSection');
         const responseData = document.getElementById('responseData');
-        const refreshBtn = document.getElementById('refreshBtn');
+        const retryBtn = document.getElementById('retryBtn');
         const timestamp = document.getElementById('timestamp');
         
-        function showState(state) {
-            loadingState.classList.add('hidden');
-            successState.classList.add('hidden');
-            errorState.classList.add('hidden');
+        let abortController = null;
+        let isFetching = false;
+        
+        function hideAllStates() {
+            statusLoading.classList.add('hidden');
+            statusSuccess.classList.add('hidden');
+            statusError.classList.add('hidden');
             responseSection.classList.add('hidden');
-            
-            if (state === 'loading') {
-                loadingState.classList.remove('hidden');
-            } else if (state === 'success') {
-                successState.classList.remove('hidden');
-                responseSection.classList.remove('hidden');
-            } else if (state === 'error') {
-                errorState.classList.remove('hidden');
-            }
         }
         
-        function formatTime(date) {
-            return date.toLocaleString('zh-CN', {
+        function showLoading() {
+            hideAllStates();
+            statusLoading.classList.remove('hidden');
+        }
+        
+        function showSuccess(status) {
+            hideAllStates();
+            statusSuccess.classList.remove('hidden');
+            statusText.textContent = status || 'Healthy';
+        }
+        
+        function showError(message) {
+            hideAllStates();
+            statusError.classList.remove('hidden');
+            errorText.textContent = message || 'Health Check Failed';
+        }
+        
+        function formatTimestamp() {
+            const now = new Date();
+            return now.toLocaleString('zh-CN', {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
@@ -87,51 +97,64 @@
             });
         }
         
-        async function checkHealth() {
-            showState('loading');
-            responseData.textContent = '';
+        async function fetchHealth() {
+            if (isFetching) return;
             
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+            isFetching = true;
+            retryBtn.disabled = true;
+            showLoading();
+            
+            abortController = new AbortController();
+            const timeoutId = setTimeout(() => abortController.abort(), 10000);
             
             try {
-                const response = await fetch(API_ENDPOINT, {
+                const response = await fetch('/healthz', {
                     method: 'GET',
-                    signal: controller.signal
+                    signal: abortController.signal
                 });
                 
                 clearTimeout(timeoutId);
                 
-                const data = await response.text().catch(() => '');
+                const data = await response.json();
                 
                 if (response.ok) {
-                    showState('success');
-                    responseData.textContent = data || '{ "status": "ok" }';
-                } else {
-                    showState('error');
-                    errorMessage.textContent = `Service returned status ${response.status}`;
-                    responseData.textContent = data;
+                    const statusValue = data.status || 'Healthy';
+                    showSuccess(statusValue);
+                    
                     responseSection.classList.remove('hidden');
+                    responseData.textContent = JSON.stringify(data, null, 2);
+                    timestamp.textContent = 'Last checked: ' + formatTimestamp();
+                } else {
+                    const errorMsg = data.message || `HTTP ${response.status}`;
+                    showError('Health Check Failed: ' + errorMsg);
+                    timestamp.textContent = 'Failed at: ' + formatTimestamp();
                 }
             } catch (error) {
                 clearTimeout(timeoutId);
-                showState('error');
+                let errorMessage = 'Unable to reach service';
                 
                 if (error.name === 'AbortError') {
-                    errorMessage.textContent = 'Request timeout after 10 seconds';
-                } else if (!navigator.onLine) {
-                    errorMessage.textContent = 'No internet connection';
-                } else {
-                    errorMessage.textContent = 'Unable to connect to service (CORS blocked)';
+                    errorMessage = 'Connection timeout';
+                } else if (error instanceof TypeError) {
+                    errorMessage = 'Network error';
                 }
+                
+                showError(errorMessage);
+                timestamp.textContent = 'Failed at: ' + formatTimestamp();
+            } finally {
+                clearTimeout(timeoutId);
+                isFetching = false;
+                retryBtn.disabled = false;
             }
-            
-            timestamp.textContent = 'Last checked: ' + formatTime(new Date());
         }
         
-        refreshBtn.addEventListener('click', checkHealth);
+        retryBtn.addEventListener('click', () => {
+            if (!isFetching) {
+                fetchHealth();
+            }
+        });
         
-        checkHealth();
+        fetchHealth();
     </script>
 </body>
 </html>
