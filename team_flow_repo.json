@@ -57,5 +57,11 @@
   "build_commands": [],
   "smoke_commands": [
     "python3 -c \"from pathlib import Path; raise SystemExit(0 if Path('README.md').exists() else 1)\""
-  ]
+  ],
+  "module_name": null,
+  "api_base_path": null,
+  "preferred_handler_paths": [],
+  "api_dependencies": [],
+  "form_entrypoints": [],
+  "preferred_update_files": []
 }
